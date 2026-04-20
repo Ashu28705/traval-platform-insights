@@ -3,31 +3,57 @@ import requests
 import os
 from datetime import datetime, timedelta
 
-# 🔥 ML IMPORTS
+# ML IMPORTS
 import numpy as np
 from sklearn.linear_model import LinearRegression
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "travelai_secret")
+app.secret_key = os.environ.get("SECRET_KEY", "travelai_secret_local")
 
-# ---------------- DATABASE CONFIG ---------------- #
-# Supports both MySQL (local XAMPP) and PostgreSQL (Render)
+# ─────────────────────────────────────────────────────────────
+# DATABASE — dual mode:
+#   • DATABASE_URL set  →  PostgreSQL (Vercel / Render / Neon)
+#   • DATABASE_URL not set  →  MySQL via XAMPP (local dev)
+# ─────────────────────────────────────────────────────────────
 
-DATABASE_URL = os.environ.get("DATABASE_URL")  # Set by Render
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
 if DATABASE_URL:
-    # ── RENDER (PostgreSQL) ──
+    # ── PRODUCTION: PostgreSQL ──────────────────────────────
     import psycopg2
-    import psycopg2.extras
 
     def get_db():
-        """Return a PostgreSQL connection + cursor."""
-        conn = psycopg2.connect(DATABASE_URL)
-        cur  = conn.cursor()
-        return conn, cur
+        conn = psycopg2.connect(DATABASE_URL, sslmode="require")
+        return conn, conn.cursor()
 
-    def init_tables():
-        """Auto-create tables on PostgreSQL."""
+else:
+    # ── LOCAL: MySQL (XAMPP) ────────────────────────────────
+    try:
+        from flask_mysqldb import MySQL
+        app.config['MYSQL_HOST']     = 'localhost'
+        app.config['MYSQL_USER']     = 'root'
+        app.config['MYSQL_PASSWORD'] = ''
+        app.config['MYSQL_DB']       = 'travel_ai'
+        mysql = MySQL(app)
+
+        def get_db():
+            conn = mysql.connection
+            return conn, conn.cursor()
+
+    except Exception:
+        mysql = None
+        def get_db():
+            raise RuntimeError("No DATABASE_URL set and flask-mysqldb not available.")
+
+# ── Lazy table initialisation (works for both cold-start Vercel
+#    and long-running gunicorn processes) ─────────────────────
+_db_ready = False
+
+def ensure_db():
+    global _db_ready
+    if _db_ready:
+        return
+    if DATABASE_URL:
         conn, cur = get_db()
         cur.execute("""
             CREATE TABLE IF NOT EXISTS users (
@@ -50,32 +76,17 @@ if DATABASE_URL:
         conn.commit()
         cur.close()
         conn.close()
+    _db_ready = True
 
-    with app.app_context():
-        init_tables()
+@app.before_request
+def before_request():
+    ensure_db()
 
-    mysql = None  # flag: PostgreSQL mode
-
-else:
-    # ── LOCAL (MySQL via XAMPP) ──
-    from flask_mysqldb import MySQL
-
-    app.config['MYSQL_HOST']     = 'localhost'
-    app.config['MYSQL_USER']     = 'root'
-    app.config['MYSQL_PASSWORD'] = ''
-    app.config['MYSQL_DB']       = 'travel_ai'
-
-    mysql = MySQL(app)
-
-    def get_db():
-        """Return a MySQL connection + cursor."""
-        conn = mysql.connection
-        cur  = conn.cursor()
-        return conn, cur
-
-# ---------------- WEATHER API ---------------- #
-
+# ─────────────────────────────────────────────────────────────
+# WEATHER API KEY
+# ─────────────────────────────────────────────────────────────
 API_KEY = os.environ.get("WEATHER_API_KEY", "0a0d90fa7e37ea79903248af2e4e1ef9")
+
 
 
 # ---------------- AI LOGIC ---------------- #
