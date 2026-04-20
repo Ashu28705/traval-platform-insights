@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Explore - TravelAI</title>
+
+    <link rel="stylesheet" href="/static/css/style.css">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+</head>
+
+<body>
+
+    <!-- CUSTOM CURSOR -->
+    <div class="cursor-dot"></div>
+    <div class="cursor-ring"></div>
+
+    <!-- NAVBAR -->
+
+    <nav class="navbar">
+        <h2>TravelAI</h2>
+
+        <div class="nav-links">
+            <a href="/home">Home</a>
+            <a href="/explore">Explore</a>
+            <a href="/reviews">Reviews</a>
+            <a href="/dashboard">Dashboard</a>
+            <a href="/logout">Logout</a>
+        </div>
+    </nav>
+
+
+    <!-- HEADER -->
+
+    <div class="explore-header">
+
+        <h1>🌍 Explore Destinations</h1>
+        <p>Discover breathtaking places around the world with AI-powered insights.</p>
+
+        <div class="explore-top">
+
+            <input type="text" placeholder="🔍 Search destinations...">
+
+            <div class="filters">
+                <span class="active" data-filter="all">All</span>
+                <span data-filter="beach">🏖 Beach</span>
+                <span data-filter="mountain">⛰ Mountain</span>
+                <span data-filter="city">🏙 City</span>
+                <span data-filter="culture">🎭 Culture</span>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- DESTINATIONS GRID -->
+
+    <div class="explore-grid">
+
+        <!-- PARIS -->
+        <div class="explore-card" data-category="city">
+            <img src="/static/images/paris.jpg">
+            <div class="card-content">
+                <h3>Paris, France</h3>
+                <p>Romantic city with art and culture.</p>
+                <div class="tags"><span>City</span><span>Culture</span></div>
+                <div class="card-bottom">⭐ 4.8 <button
+                        onclick="location.href='https://en.wikipedia.org/wiki/Paris'">Explore</button></div>
+            </div>
+        </div>
+
+        <!-- BALI -->
+        <div class="explore-card" data-category="beach">
+            <img src="/static/images/bali.jpg">
+            <div class="card-content">
+                <h3>Bali, Indonesia</h3>
+                <p>Tropical beaches and temples.</p>
+                <div class="tags"><span>Beach</span></div>
+                <div class="card-bottom">⭐ 4.7 <button
+                        onclick="location.href='https://en.wikipedia.org/wiki/Bali'">Explore</button></div>
+            </div>
+        </div>
+
+        <!-- NEW YORK -->
+        <div class="explore-card" data-category="city">
+            <img src="/static/images/newyork.jpg">
+            <div class="card-content">
+                <h3>New York, USA</h3>
+                <p>The city that never sleeps.</p>
+                <div class="tags"><span>City</span></div>
+                <div class="card-bottom">⭐ 4.8 <button
+                        onclick="location.href='https://en.wikipedia.org/wiki/New_York_City'">Explore</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- AMSTERDAM -->
+        <div class="explore-card" data-category="culture">
+            <img src="/static/images/amsterdam.jpg">
+            <div class="card-content">
+                <h3>Amsterdam</h3>
+                <p>Canals, bikes, and museums.</p>
+                <div class="tags"><span>Culture</span></div>
+                <div class="card-bottom">⭐ 4.6 <button
+                        onclick="location.href='https://en.wikipedia.org/wiki/Amsterdam'">Explore</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- DUBAI -->
+        <div class="explore-card" data-category="city">
+            <img src="/static/images/dubai.jpg">
+            <div class="card-content">
+                <h3>Dubai, UAE</h3>
+                <p>Luxury city with desert adventures.</p>
+                <div class="tags"><span>City</span></div>
+                <div class="card-bottom">⭐ 4.7 <button
+                        onclick="location.href='https://en.wikipedia.org/wiki/Dubai'">Explore</button></div>
+            </div>
+        </div>
+
+        <!-- SWITZERLAND -->
+        <div class="explore-card" data-category="mountain">
+            <img src="/static/images/switzerland.jpg">
+            <div class="card-content">
+                <h3>Switzerland</h3>
+                <p>Snow mountains and scenic views.</p>
+                <div class="tags"><span>Mountain</span></div>
+                <div class="card-bottom">⭐ 4.9 <button
+                        onclick="location.href='https://en.wikipedia.org/wiki/Switzerland'">Explore</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MALDIVES -->
+        <div class="explore-card" data-category="beach">
+            <img src="/static/images/maldives.jpg">
+            <div class="card-content">
+                <h3>Maldives</h3>
+                <p>Crystal clear water & resorts.</p>
+                <div class="tags"><span>Beach</span></div>
+                <div class="card-bottom">⭐ 4.9 <button
+                        onclick="location.href='https://en.wikipedia.org/wiki/Maldives'">Explore</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TOKYO -->
+        <div class="explore-card" data-category="city">
+            <img src="/static/images/tokyo.jpg">
+            <div class="card-content">
+                <h3>Tokyo, Japan</h3>
+                <p>Modern meets tradition.</p>
+                <div class="tags"><span>City</span></div>
+                <div class="card-bottom">⭐ 4.8 <button
+                        onclick="location.href='https://en.wikipedia.org/wiki/Tokyo'">Explore</button></div>
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- 🔥 FILTER SCRIPT (FIXED POSITION) -->
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+
+            const filterButtons = document.querySelectorAll(".filters span");
+            const cards = document.querySelectorAll(".explore-card");
+
+            filterButtons.forEach(button => {
+
+                button.addEventListener("click", () => {
+
+                    filterButtons.forEach(btn => btn.classList.remove("active"));
+                    button.classList.add("active");
+
+                    const filter = button.getAttribute("data-filter");
+
+                    cards.forEach(card => {
+
+                        const category = card.getAttribute("data-category");
+
+                        if (filter === "all" || category === filter) {
+                            card.style.display = "block";
+                        } else {
+                            card.style.display = "none";
+                        }
+
+                    });
+
+                });
+
+            });
+
+        });
+    </script>
+
+    <script src="/static/js/cursor.js"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>TravelAI Dashboard</title>
+
+    <link rel="stylesheet" href="/static/css/style.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+
+<body>
+
+    <!-- CUSTOM CURSOR -->
+    <div class="cursor-dot"></div>
+    <div class="cursor-ring"></div>
+
+    <!-- NAVBAR -->
+
+    <nav class="navbar">
+        <h2>TravelAI</h2>
+
+        <div class="nav-links">
+            <a href="/home">Home</a>
+            <a href="/explore">Explore</a>
+            <a href="/dashboard">Dashboard</a>
+            <a href="/reviews">Reviews</a>
+            <a href="/logout">Logout</a>
+        </div>
+    </nav>
+
+
+    <div class="dashboard-container">
+
+        <!-- SEARCH -->
+
+        <div class="search-section">
+
+            <h2 class="search-title">Search Travel Destination</h2>
+
+            <form action="/search" method="POST" class="search-box">
+
+                <input type="text" name="city" placeholder="Enter city or country" required>
+
+                <!-- DATE-TIME INTERVAL -->
+                <div class="datetime-interval">
+                    <label>From
+                        <input type="datetime-local" name="start_time" value="{{start_time}}" required>
+                    </label>
+                    <span class="interval-arrow">&#x2192;</span>
+                    <label>To
+                        <input type="datetime-local" name="end_time" value="{{end_time}}" required>
+                    </label>
+                </div>
+
+                <button type="submit">Search</button>
+
+            </form>
+
+        </div>
+        {% if city %}
+        <h2 class="city-title">📍 {{city | capitalize}}</h2>
+        {% endif %}
+
+
+        <!-- CARDS -->
+
+        <div class="cards">
+
+            <div class="card">
+                <h4>Weather</h4>
+                <p>{{weather}}</p>
+            </div>
+
+            <div class="card">
+                <h4>Crowd Level</h4>
+                <p>{{crowd}}</p>
+            </div>
+
+            <div class="card interval-card">
+                <h4>&#128197; Best Visit Period</h4>
+                <p class="interval-start">&#128197; From: <strong>{{best_start}}</strong></p>
+                <p class="interval-end">&#x1F551; To: <strong>{{best_end}}</strong></p>
+            </div>
+
+        </div>
+
+
+        <!-- ANALYTICS -->
+
+        <div class="analytics">
+
+            <h2 class="section-title">Crowd Analytics (ML Prediction)</h2>
+
+            <div class="chart-box">
+                <canvas id="crowdChart"></canvas>
+            </div>
+
+        </div>
+
+
+        <!-- MAP -->
+
+        <div class="map-section">
+
+            <h2 class="section-title">Location Map</h2>
+
+            <div class="chart-box">
+
+                <iframe width="100%" height="400" style="border:0" loading="lazy" allowfullscreen
+                    src="https://www.google.com/maps?q={{city}}&output=embed">
+                </iframe>
+
+            </div>
+
+        </div>
+
+
+        <!-- AI RECOMMENDATIONS -->
+
+        <div class="recommend-section">
+
+            <h2 class="section-title">✨ AI Recommendations</h2>
+
+            <div class="recommend-box">
+
+                {% if places %}
+                {% for place in places %}
+                <div class="recommend-card">
+                    {{place}}
+                </div>
+                {% endfor %}
+                {% else %}
+                <p class="no-data">Search a city to get recommendations</p>
+                {% endif %}
+
+            </div>
+
+        </div>
+
+
+        <!-- DESTINATIONS -->
+
+        <div class="destinations-section">
+
+            <h2 class="section-title">Popular Destinations</h2>
+
+            <div class="destinations">
+
+                <div class="destination-card">
+                    <img src="/static/images/paris.jpg">
+                    <div class="destination-info">
+                        <h4>Paris</h4>
+                        <p>⭐ 4.8</p>
+                    </div>
+                </div>
+
+                <div class="destination-card">
+                    <img src="/static/images/bali.jpg">
+                    <div class="destination-info">
+                        <h4>Bali</h4>
+                        <p>⭐ 4.7</p>
+                    </div>
+                </div>
+
+                <div class="destination-card">
+                    <img src="/static/images/dubai.jpg">
+                    <div class="destination-info">
+                        <h4>Dubai</h4>
+                        <p>⭐ 4.6</p>
+                    </div>
+                </div>
+
+                <div class="destination-card">
+                    <img src="/static/images/switzerland.jpg">
+                    <div class="destination-info">
+                        <h4>Switzerland</h4>
+                        <p>⭐ 4.9</p>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- 🔥 ML GRAPH SCRIPT -->
+
+    <script>
+
+        const ctx = document.getElementById('crowdChart');
+
+        // ML DATA FROM FLASK
+        const crowdData   = {{ crowd_data  | tojson | safe if crowd_data  else [20, 30, 45, 60, 40, 25, 30, 50, 60, 70, 55, 35] }};
+        const chartLabels = {{ chart_labels | tojson | safe if chart_labels else ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'] }};
+
+        new Chart(ctx, {
+
+            type: 'line',
+
+            data: {
+
+                labels: chartLabels,
+
+                datasets: [{
+                    label: 'Predicted Crowd',
+                    data: crowdData,
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3
+                }]
+
+            },
+
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+
+        });
+
+    </script>
+
+    <script src="/static/js/cursor.js"></script>
+
+</body>
+
+</html>

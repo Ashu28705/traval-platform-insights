@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Register - TravelAI</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+
+    <!-- CUSTOM CURSOR -->
+    <div class="cursor-dot"></div>
+    <div class="cursor-ring"></div>
+
+    <div class="login-container">
+
+        <h2>Create Account</h2>
+
+        <form action="/register_user" method="POST">
+
+            <input type="text"     name="name"     placeholder="Full Name"      required>
+            <input type="email"    name="email"    placeholder="Email Address"  required>
+            <input type="password" name="password" placeholder="Password"       required>
+            <button type="submit">Register</button>
+
+        </form>
+
+        <p>Already have an account? <a href="/">Login</a></p>
+
+    </div>
+
+    <script src="/static/js/cursor.js"></script>
+
+</body>
+</html>

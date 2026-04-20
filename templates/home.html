@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>TravelAI - Home</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <style>
+        /* ═══════════════════════════════════════════════════════
+           WELCOME SPLASH OVERLAY
+           ═══════════════════════════════════════════════════════ */
+        .welcome-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 100000;
+            background: #03060f;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            transition: opacity .8s ease, visibility .8s;
+        }
+        .welcome-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        /* Animated particles background */
+        .particle-field {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+        }
+        .particle-field span {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(0,210,255,0.6);
+            border-radius: 50%;
+            animation: particle-rise linear infinite;
+            box-shadow: 0 0 8px rgba(0,210,255,0.4);
+        }
+        @keyframes particle-rise {
+            0% {
+                transform: translateY(100vh) scale(0);
+                opacity: 0;
+            }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% {
+                transform: translateY(-20vh) scale(1.2);
+                opacity: 0;
+            }
+        }
+
+        /* Central logo animation */
+        .welcome-logo {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+        }
+
+        .welcome-logo .globe {
+            font-size: 5rem;
+            margin-bottom: 20px;
+            display: inline-block;
+            animation: globe-spin 2s ease-in-out infinite;
+            filter: drop-shadow(0 0 35px rgba(0,210,255,0.6));
+        }
+        @keyframes globe-spin {
+            0%, 100% { transform: rotateY(0deg) scale(1); }
+            50% { transform: rotateY(180deg) scale(1.1); }
+        }
+
+        .welcome-logo h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 900;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, #00d2ff, #3a7bd5, #a855f7, #e94560);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradient-shift 3s ease infinite;
+            opacity: 0;
+            animation: text-reveal 1s ease 0.4s forwards, gradient-shift 3s ease infinite;
+        }
+
+        @keyframes gradient-shift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        @keyframes text-reveal {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+                letter-spacing: 12px;
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+                letter-spacing: -1px;
+            }
+        }
+
+        /* Welcome message */
+        .welcome-message {
+            position: relative;
+            z-index: 2;
+            color: rgba(255,255,255,0.7);
+            font-size: 1.15rem;
+            font-weight: 400;
+            margin-top: 18px;
+            opacity: 0;
+            animation: fade-up .8s ease .9s forwards;
+        }
+        .welcome-message span {
+            color: #00d2ff;
+            font-weight: 700;
+        }
+
+        @keyframes fade-up {
+            from { opacity: 0; transform: translateY(18px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Progress bar */
+        .welcome-progress {
+            position: relative;
+            z-index: 2;
+            width: 220px;
+            height: 3px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 3px;
+            margin-top: 36px;
+            overflow: hidden;
+            opacity: 0;
+            animation: fade-up .6s ease 1.2s forwards;
+        }
+        .welcome-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #00d2ff, #a855f7, #e94560);
+            border-radius: 3px;
+            width: 0%;
+            animation: progress-fill 2.5s ease 1.4s forwards;
+            box-shadow: 0 0 15px rgba(0,210,255,0.6);
+        }
+        @keyframes progress-fill {
+            0%   { width: 0%; }
+            60%  { width: 75%; }
+            100% { width: 100%; }
+        }
+
+        /* Radial rings behind globe */
+        .welcome-rings {
+            position: absolute;
+            z-index: 1;
+            width: 320px;
+            height: 320px;
+            border-radius: 50%;
+        }
+        .welcome-rings .ring {
+            position: absolute;
+            inset: 0;
+            border: 1px solid rgba(0,210,255,0.1);
+            border-radius: 50%;
+            animation: ring-pulse 2.5s ease infinite;
+        }
+        .welcome-rings .ring:nth-child(2) {
+            inset: -30px;
+            border-color: rgba(168,85,247,0.08);
+            animation-delay: 0.5s;
+        }
+        .welcome-rings .ring:nth-child(3) {
+            inset: -60px;
+            border-color: rgba(233,69,96,0.06);
+            animation-delay: 1s;
+        }
+        @keyframes ring-pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.12); opacity: 1; }
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           ENHANCED HOME PAGE ENTRANCE ANIMATIONS
+           ═══════════════════════════════════════════════════════ */
+        .page-content {
+            opacity: 0;
+            transition: opacity .6s ease;
+        }
+        .page-content.visible { opacity: 1; }
+
+        /* Staggered entrance for home sections */
+        .home-container.animate-in h1 {
+            animation: hero-text-enter 1s cubic-bezier(0.16,1,0.3,1) both;
+        }
+        .home-container.animate-in p {
+            animation: hero-text-enter 1s cubic-bezier(0.16,1,0.3,1) 0.15s both;
+        }
+        .home-container.animate-in .home-search {
+            animation: hero-text-enter 1s cubic-bezier(0.16,1,0.3,1) 0.3s both;
+        }
+
+        @keyframes hero-text-enter {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+                filter: blur(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+                filter: blur(0);
+            }
+        }
+
+        .home-cards.animate-in .home-card {
+            animation: card-pop .7s cubic-bezier(0.34,1.56,0.64,1) both;
+        }
+        .home-cards.animate-in .home-card:nth-child(1) { animation-delay: 0.1s; }
+        .home-cards.animate-in .home-card:nth-child(2) { animation-delay: 0.25s; }
+        .home-cards.animate-in .home-card:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes card-pop {
+            from {
+                opacity: 0;
+                transform: translateY(50px) scale(0.85);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .featured-section.animate-in h2 {
+            animation: hero-text-enter 1s cubic-bezier(0.16,1,0.3,1) both;
+        }
+        .featured-section.animate-in .destination-card {
+            animation: card-pop .7s cubic-bezier(0.34,1.56,0.64,1) both;
+        }
+        .featured-section.animate-in .destination-card:nth-child(1) { animation-delay: 0.15s; }
+        .featured-section.animate-in .destination-card:nth-child(2) { animation-delay: 0.3s; }
+        .featured-section.animate-in .destination-card:nth-child(3) { animation-delay: 0.45s; }
+    </style>
+</head>
+
+<body>
+
+    <!-- CUSTOM CURSOR -->
+    <div class="cursor-dot"></div>
+    <div class="cursor-ring"></div>
+
+    <!-- ═══ WELCOME SPLASH OVERLAY ═══ -->
+    <div class="welcome-overlay" id="welcomeOverlay">
+
+        <!-- Floating particles -->
+        <div class="particle-field" id="particleField"></div>
+
+        <!-- Pulsing rings -->
+        <div class="welcome-rings">
+            <div class="ring"></div>
+            <div class="ring"></div>
+            <div class="ring"></div>
+        </div>
+
+        <!-- Central branding -->
+        <div class="welcome-logo">
+            <div class="globe">🌍</div>
+            <h1>TravelAI</h1>
+        </div>
+
+        <p class="welcome-message">Welcome back, <span id="welcomeName">{{ session.get('user', 'Explorer') }}</span>!</p>
+
+        <!-- Progress bar -->
+        <div class="welcome-progress">
+            <div class="welcome-progress-bar"></div>
+        </div>
+    </div>
+
+
+    <!-- ═══ PAGE CONTENT (hidden until splash ends) ═══ -->
+    <div class="page-content" id="pageContent">
+
+        <!-- 🔥 PARALLAX BACKGROUND LAYER -->
+        <div class="parallax-bg"></div>
+
+        <!-- NAVBAR -->
+        <nav class="navbar">
+            <h2>TravelAI</h2>
+            <div class="nav-links">
+                <a href="/home">Home</a>
+                <a href="/explore">Explore</a>
+                <a href="/dashboard">Dashboard</a>
+                <a href="/reviews">Reviews</a>
+                <a href="/logout">Logout</a>
+            </div>
+        </nav>
+
+        <!-- HERO SECTION -->
+        <div class="home-container" id="heroSection">
+            <h1>Explore Tourist Destinations with AI</h1>
+            <p>Discover the best places, crowd trends and travel insights powered by AI.</p>
+            <form action="/search" method="POST" class="home-search">
+                <input type="text" name="city" placeholder="Enter location..." required>
+                <button type="submit">
+                    <i class="fa fa-search"></i> Search
+                </button>
+            </form>
+        </div>
+
+        <!-- CARDS -->
+        <div class="home-cards" id="cardsSection">
+            <div class="home-card">
+                <i class="fa-solid fa-cloud-sun"></i>
+                <h3>Live Weather</h3>
+                <p>Real-time weather data using API</p>
+            </div>
+            <div class="home-card">
+                <i class="fa-solid fa-chart-line"></i>
+                <h3>AI Prediction</h3>
+                <p>Crowd trends using ML model</p>
+            </div>
+            <div class="home-card">
+                <i class="fa-solid fa-map-location-dot"></i>
+                <h3>Smart Maps</h3>
+                <p>Explore destinations visually</p>
+            </div>
+        </div>
+
+        <!-- FEATURED -->
+        <div class="featured-section" id="featuredSection">
+            <h2>Popular Destinations</h2>
+            <div class="destinations">
+                <div class="destination-card" onclick="location.href='/location/paris'">
+                    <img src="/static/images/paris.jpg">
+                    <div class="destination-info">
+                        <h4>Paris</h4>
+                    </div>
+                </div>
+                <div class="destination-card" onclick="location.href='/location/dubai'">
+                    <img src="/static/images/dubai.jpg">
+                    <div class="destination-info">
+                        <h4>Dubai</h4>
+                    </div>
+                </div>
+                <div class="destination-card" onclick="location.href='/location/tokyo'">
+                    <img src="/static/images/tokyo.jpg">
+                    <div class="destination-info">
+                        <h4>Tokyo</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ═══ SCRIPTS ═══ -->
+    <script>
+        // --- Generate floating particles ---
+        (function() {
+            const field = document.getElementById('particleField');
+            if (!field) return;
+            for (let i = 0; i < 60; i++) {
+                const span = document.createElement('span');
+                span.style.left   = Math.random() * 100 + '%';
+                span.style.width  = (2 + Math.random() * 4) + 'px';
+                span.style.height = span.style.width;
+                span.style.animationDuration = (3 + Math.random() * 5) + 's';
+                span.style.animationDelay    = (Math.random() * 4) + 's';
+
+                // Random colors from palette
+                const colors = ['rgba(0,210,255,0.6)', 'rgba(168,85,247,0.5)', 'rgba(233,69,96,0.4)', 'rgba(255,215,0,0.4)'];
+                span.style.background = colors[Math.floor(Math.random() * colors.length)];
+                span.style.boxShadow  = '0 0 8px ' + span.style.background;
+
+                field.appendChild(span);
+            }
+        })();
+
+        // --- Welcome → Home transition logic ---
+        (function() {
+            const overlay = document.getElementById('welcomeOverlay');
+            const page    = document.getElementById('pageContent');
+            const params  = new URLSearchParams(window.location.search);
+
+            if (params.get('welcome') === '1') {
+                // Show the splash, then transition
+                const SPLASH_DURATION = 4000; // 4 seconds
+
+                setTimeout(function() {
+                    // Fade out the overlay
+                    overlay.classList.add('hidden');
+
+                    // Show and animate page content
+                    page.classList.add('visible');
+
+                    // Trigger staggered entrance animations
+                    document.getElementById('heroSection').classList.add('animate-in');
+
+                    setTimeout(function() {
+                        document.getElementById('cardsSection').classList.add('animate-in');
+                    }, 300);
+
+                    setTimeout(function() {
+                        document.getElementById('featuredSection').classList.add('animate-in');
+                    }, 600);
+
+                    // Clean up URL (remove ?welcome=1)
+                    window.history.replaceState({}, '', '/home');
+
+                    // Remove overlay from DOM after transition
+                    setTimeout(function() {
+                        overlay.remove();
+                    }, 1000);
+
+                }, SPLASH_DURATION);
+
+            } else {
+                // Normal visit (no splash) — show content immediately
+                overlay.remove();
+                page.classList.add('visible');
+                document.getElementById('heroSection').classList.add('animate-in');
+                document.getElementById('cardsSection').classList.add('animate-in');
+                document.getElementById('featuredSection').classList.add('animate-in');
+            }
+        })();
+
+        // --- Parallax scroll ---
+        window.addEventListener("scroll", function() {
+            const bg = document.querySelector(".parallax-bg");
+            if (bg) bg.style.transform = "translateY(" + window.scrollY * 0.4 + "px)";
+        });
+    </script>
+
+    <script src="/static/js/cursor.js"></script>
+
+</body>
+
+</html>
