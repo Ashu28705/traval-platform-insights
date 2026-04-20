@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, session
-from flask_mysqldb import MySQL
 import requests
+import os
 from datetime import datetime, timedelta
 
 # 🔥 ML IMPORTS
@@ -8,20 +8,75 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 
 app = Flask(__name__)
-app.secret_key = "travelai_secret"
+app.secret_key = os.environ.get("SECRET_KEY", "travelai_secret")
 
 # ---------------- DATABASE CONFIG ---------------- #
+# Supports both MySQL (local XAMPP) and PostgreSQL (Render)
 
-app.config['MYSQL_HOST'] = 'localhost'
-app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = ''
-app.config['MYSQL_DB'] = 'travel_ai'
+DATABASE_URL = os.environ.get("DATABASE_URL")  # Set by Render
 
-mysql = MySQL(app)
+if DATABASE_URL:
+    # ── RENDER (PostgreSQL) ──
+    import psycopg2
+    import psycopg2.extras
+
+    def get_db():
+        """Return a PostgreSQL connection + cursor."""
+        conn = psycopg2.connect(DATABASE_URL)
+        cur  = conn.cursor()
+        return conn, cur
+
+    def init_tables():
+        """Auto-create tables on PostgreSQL."""
+        conn, cur = get_db()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id       SERIAL PRIMARY KEY,
+                name     VARCHAR(100)  NOT NULL,
+                email    VARCHAR(100)  UNIQUE NOT NULL,
+                password VARCHAR(255)  NOT NULL
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS reviews (
+                id         SERIAL PRIMARY KEY,
+                name       VARCHAR(100) NOT NULL,
+                place      VARCHAR(100) NOT NULL,
+                rating     INT          NOT NULL,
+                review     TEXT         NOT NULL,
+                created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+        cur.close()
+        conn.close()
+
+    with app.app_context():
+        init_tables()
+
+    mysql = None  # flag: PostgreSQL mode
+
+else:
+    # ── LOCAL (MySQL via XAMPP) ──
+    from flask_mysqldb import MySQL
+
+    app.config['MYSQL_HOST']     = 'localhost'
+    app.config['MYSQL_USER']     = 'root'
+    app.config['MYSQL_PASSWORD'] = ''
+    app.config['MYSQL_DB']       = 'travel_ai'
+
+    mysql = MySQL(app)
+
+    def get_db():
+        """Return a MySQL connection + cursor."""
+        conn = mysql.connection
+        cur  = conn.cursor()
+        return conn, cur
 
 # ---------------- WEATHER API ---------------- #
 
-API_KEY = "0a0d90fa7e37ea79903248af2e4e1ef9"
+API_KEY = os.environ.get("WEATHER_API_KEY", "0a0d90fa7e37ea79903248af2e4e1ef9")
+
 
 # ---------------- AI LOGIC ---------------- #
 
@@ -170,14 +225,17 @@ def register_user():
     email = request.form["email"]
     password = request.form["password"]
 
-    cur = mysql.connection.cursor()
+    conn, cur = get_db()
 
     cur.execute(
         "INSERT INTO users(name,email,password) VALUES(%s,%s,%s)",
         (name, email, password)
     )
 
-    mysql.connection.commit()
+    conn.commit()
+    if DATABASE_URL:
+        cur.close()
+        conn.close()
 
     return redirect("/")
 
@@ -190,7 +248,7 @@ def login():
     email = request.form["email"]
     password = request.form["password"]
 
-    cur = mysql.connection.cursor()
+    conn, cur = get_db()
 
     cur.execute(
         "SELECT * FROM users WHERE email=%s AND password=%s",
@@ -198,6 +256,9 @@ def login():
     )
 
     user = cur.fetchone()
+    if DATABASE_URL:
+        cur.close()
+        conn.close()
 
     if user:
         session["user"] = user[1]
@@ -319,23 +380,28 @@ def explore():
 
 @app.route("/reviews")
 def reviews():
-    cur = mysql.connection.cursor()
+    conn, cur = get_db()
 
-    # Auto-create reviews table if it doesn't exist yet
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS reviews (
-            id         INT AUTO_INCREMENT PRIMARY KEY,
-            name       VARCHAR(100) NOT NULL,
-            place      VARCHAR(100) NOT NULL,
-            rating     INT          NOT NULL,
-            review     TEXT         NOT NULL,
-            created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    mysql.connection.commit()
+    # Auto-create reviews table (MySQL only; PostgreSQL tables created at startup)
+    if not DATABASE_URL:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS reviews (
+                id         INT AUTO_INCREMENT PRIMARY KEY,
+                name       VARCHAR(100) NOT NULL,
+                place      VARCHAR(100) NOT NULL,
+                rating     INT          NOT NULL,
+                review     TEXT         NOT NULL,
+                created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
 
     cur.execute("SELECT id, name, place, rating, review, created_at FROM reviews ORDER BY created_at DESC")
     rows = cur.fetchall()
+
+    if DATABASE_URL:
+        cur.close()
+        conn.close()
 
     all_reviews = []
     rating_dist  = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
@@ -383,26 +449,30 @@ def submit_review():
     rating = request.form["rating"]
     review = request.form["review"]
 
-    cur = mysql.connection.cursor()
+    conn, cur = get_db()
 
-    # Auto-create reviews table if it doesn't exist yet
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS reviews (
-            id         INT AUTO_INCREMENT PRIMARY KEY,
-            name       VARCHAR(100) NOT NULL,
-            place      VARCHAR(100) NOT NULL,
-            rating     INT          NOT NULL,
-            review     TEXT         NOT NULL,
-            created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
+    # Auto-create reviews table (MySQL only)
+    if not DATABASE_URL:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS reviews (
+                id         INT AUTO_INCREMENT PRIMARY KEY,
+                name       VARCHAR(100) NOT NULL,
+                place      VARCHAR(100) NOT NULL,
+                rating     INT          NOT NULL,
+                review     TEXT         NOT NULL,
+                created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
 
     cur.execute(
         "INSERT INTO reviews(name, place, rating, review) VALUES(%s,%s,%s,%s)",
         (name, place, rating, review)
     )
 
-    mysql.connection.commit()
+    conn.commit()
+    if DATABASE_URL:
+        cur.close()
+        conn.close()
 
     return redirect("/reviews")
 

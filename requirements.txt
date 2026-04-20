@@ -1,0 +1,7 @@
+flask
+flask-mysqldb
+requests
+numpy
+scikit-learn
+gunicorn
+psycopg2-binary
