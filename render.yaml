@@ -1,0 +1,24 @@
+databases:
+  - name: travelai-db
+    plan: free
+    databaseName: travel_ai
+    user: travelai_user
+
+services:
+  - type: web
+    name: travelai
+    plan: free
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: travelai-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: WEATHER_API_KEY
+        value: 0a0d90fa7e37ea79903248af2e4e1ef9
+      - key: PYTHON_VERSION
+        value: 3.11.0

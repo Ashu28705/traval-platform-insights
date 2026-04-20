@@ -477,4 +477,6 @@ def submit_review():
     return redirect("/reviews")
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    debug = not DATABASE_URL  # debug only on local
+    app.run(host="0.0.0.0", port=port, debug=debug)
