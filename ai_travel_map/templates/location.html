@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>TravelAI - Location</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .location-header {
+            background: linear-gradient(135deg, #0f3460, #1a1a2e);
+            color: white;
+            text-align: center;
+            padding: 60px 20px 40px;
+        }
+        .location-header h1 { font-size: 2.5rem; margin-bottom: 10px; }
+        .location-header p { color: #aaa; font-size: 1.1rem; }
+
+        .location-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            padding: 50px 40px;
+            background: #1a1a2e;
+            justify-content: center;
+        }
+
+        .map-panel {
+            flex: 1 1 560px;
+            max-width: 700px;
+        }
+        .map-panel h2 { color: white; margin-bottom: 15px; }
+        .map-search {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .map-search input {
+            flex: 1;
+            padding: 12px 20px;
+            border-radius: 25px;
+            border: 1px solid #e94560;
+            background: #16213e;
+            color: white;
+            font-size: 0.95rem;
+        }
+        .map-search input::placeholder { color: #888; }
+        .map-search button {
+            padding: 12px 22px;
+            border-radius: 25px;
+            border: none;
+            background: #e94560;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .map-search button:hover { background: #c73652; }
+        .map-frame {
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+        .map-frame iframe { display: block; }
+
+        .info-panel {
+            flex: 1 1 260px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .info-card {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 22px;
+            color: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+        }
+        .info-card h3 { margin-bottom: 12px; color: #e94560; }
+        .info-card p { color: #ccc; font-size: 0.9rem; line-height: 1.6; }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+            font-size: 0.9rem;
+        }
+        .info-row:last-child { border-bottom: none; }
+        .info-row .label { color: #aaa; }
+        .info-row .value { color: white; font-weight: bold; }
+
+        .popular-list h2 {
+            color: white;
+            margin-bottom: 20px;
+        }
+        .popular-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+            color: white;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .popular-item:hover { color: #e94560; }
+        .popular-item:last-child { border-bottom: none; }
+        .pop-icon { font-size: 1.4rem; }
+        .pop-info .city-name { font-weight: bold; font-size: 0.95rem; }
+        .pop-info .country { font-size: 0.75rem; color: #888; }
+
+        footer {
+            background: #0f0f1a;
+            color: #aaa;
+            text-align: center;
+            padding: 20px;
+            font-size: 0.9rem;
+        }
+    </head>
+
+<body>
+
+    <!-- CUSTOM CURSOR -->
+    <div class="cursor-dot"></div>
+    <div class="cursor-ring"></div>
+
+    <!-- NAVBAR -->
+    <nav class="navbar">
+        <h2>TravelAI</h2>
+        <div class="nav-right">
+            <a href="/home">Home</a>
+            <a href="/explore">Explore</a>
+            <a href="/reviews">Reviews</a>
+            <a href="/location">Location</a>
+            {% if session.get('user') %}
+                Welcome {{ session['user'] }}
+                <a href="/logout">Logout</a>
+            {% else %}
+                <a href="/">Login</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <!-- HEADER -->
+    <div class="location-header">
+        <h1>🗺️ Location Explorer</h1>
+        <p>Search any city and explore it interactively on the map.</p>
+    </div>
+
+    <div class="location-container">
+
+        <!-- MAP PANEL -->
+        <div class="map-panel">
+            <h2>📍 Interactive Map</h2>
+            <div class="map-search">
+                <input type="text" id="cityInput" placeholder="Enter city name..." value="Paris">
+                <button onclick="loadMap()">Search</button>
+            </div>
+            <div class="map-frame">
+                <iframe id="mapFrame"
+                    width="100%"
+                    height="420"
+                    style="border:0"
+                    loading="lazy"
+                    allowfullscreen
+                    src="https://www.google.com/maps?q=Paris&output=embed">
+                </iframe>
+            </div>
+        </div>
+
+        <!-- INFO PANEL -->
+        <div class="info-panel">
+
+            <!-- QUICK STATS -->
+            <div class="info-card">
+                <h3>📊 Quick Stats</h3>
+                <div class="info-row">
+                    <span class="label">Current City</span>
+                    <span class="value" id="currentCity">Paris</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Best Season</span>
+                    <span class="value">Spring / Fall</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Currency</span>
+                    <span class="value">EUR €</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Language</span>
+                    <span class="value">French</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Time Zone</span>
+                    <span class="value">UTC+1</span>
+                </div>
+            </div>
+
+            <!-- POPULAR PLACES -->
+            <div class="info-card">
+                <h3>🌍 Popular Cities</h3>
+                <div class="popular-list">
+                    <div class="popular-item" onclick="setCity('Paris')">
+                        <span class="pop-icon">🇫🇷</span>
+                        <div class="pop-info">
+                            <div class="city-name">Paris</div>
+                            <div class="country">France</div>
+                        </div>
+                    </div>
+                    <div class="popular-item" onclick="setCity('Bali')">
+                        <span class="pop-icon">🇮🇩</span>
+                        <div class="pop-info">
+                            <div class="city-name">Bali</div>
+                            <div class="country">Indonesia</div>
+                        </div>
+                    </div>
+                    <div class="popular-item" onclick="setCity('Dubai')">
+                        <span class="pop-icon">🇦🇪</span>
+                        <div class="pop-info">
+                            <div class="city-name">Dubai</div>
+                            <div class="country">UAE</div>
+                        </div>
+                    </div>
+                    <div class="popular-item" onclick="setCity('Switzerland')">
+                        <span class="pop-icon">🇨🇭</span>
+                        <div class="pop-info">
+                            <div class="city-name">Switzerland</div>
+                            <div class="country">Europe</div>
+                        </div>
+                    </div>
+                    <div class="popular-item" onclick="setCity('Tokyo')">
+                        <span class="pop-icon">🇯🇵</span>
+                        <div class="pop-info">
+                            <div class="city-name">Tokyo</div>
+                            <div class="country">Japan</div>
+                        </div>
+                    </div>
+                    <div class="popular-item" onclick="setCity('London')">
+                        <span class="pop-icon">🇬🇧</span>
+                        <div class="pop-info">
+                            <div class="city-name">London</div>
+                            <div class="country">United Kingdom</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    <footer>
+        <p>&copy; 2024 TravelAI. All rights reserved.</p>
+    </footer>
+
+    <script>
+        function loadMap() {
+            const city = document.getElementById('cityInput').value.trim();
+            if (!city) return;
+            document.getElementById('mapFrame').src =
+                `https://www.google.com/maps?q=${encodeURIComponent(city)}&output=embed`;
+            document.getElementById('currentCity').textContent = city;
+        }
+
+        function setCity(city) {
+            document.getElementById('cityInput').value = city;
+            loadMap();
+        }
+    </script>
+
+    <script src="/static/js/cursor.js"></script>
+
+</body>
+
+</html>
