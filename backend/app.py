@@ -1,27 +1,35 @@
+from pathlib import Path
+
 from flask import Flask, render_template, request, redirect, session
 from flask_mysqldb import MySQL
 import requests
 from datetime import datetime, timedelta
 
-# 🔥 ML IMPORTS
 import numpy as np
 from sklearn.linear_model import LinearRegression
 
-app = Flask(__name__)
-app.secret_key = "travelai_secret"
+from config import Config
+
+BASE_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = BASE_DIR.parent
+FRONTEND_DIR = PROJECT_ROOT / "frontend"
+
+app = Flask(
+    __name__,
+    template_folder=str(FRONTEND_DIR / "templates"),
+    static_folder=str(FRONTEND_DIR / "static"),
+    static_url_path="/static",
+)
+app.config.from_object(Config)
+app.secret_key = app.config["SECRET_KEY"]
 
 # ---------------- DATABASE CONFIG ---------------- #
-
-app.config['MYSQL_HOST'] = 'localhost'
-app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = ''
-app.config['MYSQL_DB'] = 'travel_ai'
 
 mysql = MySQL(app)
 
 # ---------------- WEATHER API ---------------- #
 
-API_KEY = "0a0d90fa7e37ea79903248af2e4e1ef9"
+API_KEY = app.config["OPENWEATHER_API_KEY"]
 
 # ---------------- AI LOGIC ---------------- #
 

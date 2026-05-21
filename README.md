@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🌍 AI Travel Map — Intelligent Travel Insights & Crowd Analysis Platform
 
 <div align="center">
@@ -13,9 +14,17 @@
 ### Smart Travel Planning with Real-Time Analytics, AI Recommendations & Crowd Prediction
 
 </div>
+=======
+# AI Travel Map
 
----
+**AI Travel Map - Intelligent Travel Insights & Crowd Analytics Platform** is a beginner-to-intermediate Flask travel application that helps users explore destinations, check weather, view crowd predictions, analyze review sentiment, and use a simple analytics dashboard.
 
+This repository is currently in the **clean architecture preparation phase**. The project still uses Flask, Jinja templates, static CSS, vanilla JavaScript, MySQL, and the existing ML/weather logic. The goal of this phase is not to rebuild the product, but to make it easier to maintain, document, run, and contribute to.
+>>>>>>> a37b189 (changes is done properly)
+
+## Current Features
+
+<<<<<<< HEAD
 # 📌 Overview
 
 AI Travel Map is a modern travel intelligence platform that helps users discover destinations using:
@@ -28,9 +37,21 @@ AI Travel Map is a modern travel intelligence platform that helps users discover
 - Interactive destination insights
 
 The platform combines modern frontend technologies, Flask backend services, APIs, and data analytics to deliver a professional travel planning experience.
+=======
+- Login and register pages
+- Destination exploration pages
+- Weather lookup using OpenWeatherMap
+- Crowd prediction using simple ML logic
+- Analytics dashboard with charts
+- Reviews section with keyword-based sentiment analysis
+- Static travel images and custom UI styling
 
----
+## Current Tech Stack
+>>>>>>> a37b189 (changes is done properly)
 
+**Frontend**
+
+<<<<<<< HEAD
 # ✨ Features
 
 ## 🌐 Smart Destination Search
@@ -140,11 +161,59 @@ traval-platform-insights/
 │   ├── app.py
 │   └── config.py
 │
+=======
+- HTML
+- CSS
+- Vanilla JavaScript
+- Jinja templates
+- Chart.js
+
+**Backend**
+
+- Python
+- Flask
+- Flask-MySQLdb
+- Requests
+- NumPy
+- Scikit-learn
+
+**Database**
+
+- MySQL
+
+## Project Structure
+
+```text
+traval-platform-insights/
+├── frontend/
+│   ├── static/
+│   │   ├── css/
+│   │   ├── images/
+│   │   └── js/
+│   └── templates/
+├── backend/
+│   ├── app.py
+│   ├── config.py
+│   ├── database/
+│   │   └── schema.sql
+│   ├── models/
+│   ├── routes/
+│   ├── services/
+│   ├── utils/
+│   └── requirements.txt
+├── docs/
+│   ├── architecture.md
+│   ├── roadmap.md
+│   └── setup.md
+├── .env.example
+├── CONTRIBUTING.md
+>>>>>>> a37b189 (changes is done properly)
 └── README.md
 ```
 
----
+## Folder Guide
 
+<<<<<<< HEAD
 # 🚀 Installation Guide
 
 # 1️⃣ Clone Repository
@@ -155,10 +224,67 @@ git clone https://github.com/your-username/traval-platform-insights.git
 
 ```bash
 cd traval-platform-insights
+=======
+- `frontend/templates/` contains the existing Jinja HTML pages.
+- `frontend/static/` contains CSS, JavaScript, and images served by Flask.
+- `backend/app.py` contains the current Flask application and routes.
+- `backend/config.py` centralizes environment-based configuration.
+- `backend/database/schema.sql` contains the current MySQL schema.
+- `backend/routes/` is reserved for future Flask Blueprint route modules.
+- `backend/services/` is reserved for business logic such as weather, crowd prediction, and reviews.
+- `backend/models/` is reserved for future database model abstractions.
+- `backend/utils/` is reserved for reusable helper functions.
+- `docs/` contains contributor-friendly project documentation.
+
+## Why Frontend/Backend Separation Matters
+
+The original project kept Flask routes, templates, static files, configuration, and database files inside one app folder. That is fine for learning, but it becomes hard to grow.
+
+Separating `frontend/` and `backend/` makes ownership clearer:
+
+- UI files are easier for frontend contributors to find.
+- Flask code and database files are easier for backend contributors to maintain.
+- Future migration to APIs or a modern frontend becomes simpler.
+- Documentation can explain the project without hiding implementation details.
+- Contributors can work on pages, styles, routes, or database changes without stepping on each other.
+
+## Current Limitations
+
+- Most backend logic still lives in `backend/app.py`.
+- Passwords are currently stored directly and should be hashed in a future security phase.
+- The weather API key has a fallback value for compatibility and should be rotated before public deployment.
+- There is no formal test suite yet.
+- There are no Flask Blueprints yet.
+- Database migrations are not implemented yet.
+- Error handling and validation are basic.
+- This is not production-ready yet.
+
+## Setup Overview
+
+1. Create and activate a Python virtual environment.
+
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate
 ```
 
----
+2. Install dependencies.
 
+```bash
+pip install -r requirements.txt
+```
+
+3. Create the MySQL database.
+
+```bash
+mysql -u root -p < database/schema.sql
+>>>>>>> a37b189 (changes is done properly)
+```
+
+4. Configure environment variables.
+
+<<<<<<< HEAD
 # 2️⃣ Create Virtual Environment
 
 ## Windows
@@ -378,9 +504,41 @@ app = Flask(__name__, static_folder='static')
 # 🌟 Future Enhancements
 
 The platform is continuously evolving and many exciting features are planned for future releases.
+=======
+```bash
+cp ../.env.example ../.env
+```
 
----
+5. Run the Flask app.
 
+```bash
+python app.py
+```
+
+6. Open the app.
+
+```text
+http://127.0.0.1:5000
+```
+
+## Development Goals For Current Phase
+
+- Keep the existing Flask/Jinja app working.
+- Improve folder organization.
+- Add professional documentation.
+- Prepare route, service, model, and utility folders.
+- Move secrets and config values toward environment variables.
+- Make the repository easier for GSSoC and Hacktoberfest contributors.
+
+## Documentation
+>>>>>>> a37b189 (changes is done properly)
+
+- [Architecture](docs/architecture.md)
+- [Setup Guide](docs/setup.md)
+- [Roadmap](docs/roadmap.md)
+- [Contributing Guide](CONTRIBUTING.md)
+
+<<<<<<< HEAD
 ## 🤖 AI & Machine Learning Features
 
 - AI-powered personalized travel recommendations
@@ -393,9 +551,19 @@ The platform is continuously evolving and many exciting features are planned for
 - Dynamic travel suggestion engine
 - Travel risk prediction system
 - Smart seasonal recommendation engine
+=======
+## Deployment Overview
 
----
+For the current phase, deploy as a traditional Flask application:
+>>>>>>> a37b189 (changes is done properly)
 
+- Use a Python hosting platform or VPS.
+- Configure MySQL.
+- Set environment variables for secrets and API keys.
+- Run Flask behind a production WSGI server such as Gunicorn.
+- Serve static files through Flask for now, or through Nginx later.
+
+<<<<<<< HEAD
 ## 🌍 Advanced Travel Features
 
 - Hotel recommendation system
@@ -411,9 +579,15 @@ The platform is continuously evolving and many exciting features are planned for
 - Route optimization
 - Navigation support with maps
 - Nearby emergency services finder
+=======
+Docker, CI/CD, and advanced deployment automation can be added in a later phase.
 
----
+## Open-Source Readiness
+>>>>>>> a37b189 (changes is done properly)
 
+This repository is now structured so beginners can contribute to:
+
+<<<<<<< HEAD
 ## 📊 Analytics & Visualization
 
 - Real-time crowd heatmaps
@@ -603,3 +777,14 @@ If you like this project:
 ### Built with ❤️ for GSSoC & Open Source Community
 
 </div>
+=======
+- HTML page improvements
+- CSS cleanup
+- JavaScript interactions
+- Flask route cleanup
+- README and docs improvements
+- Database schema improvements
+- Basic validation and security improvements
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contributor guidance.
+>>>>>>> a37b189 (changes is done properly)

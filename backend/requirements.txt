@@ -1,0 +1,6 @@
+Flask
+Flask-MySQLdb
+requests
+python-dotenv
+numpy
+scikit-learn
