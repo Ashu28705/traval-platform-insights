@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from flask import Flask, render_template, request, redirect, session
+from flask import Flask, jsonify, render_template, request, redirect, session
 from flask_mysqldb import MySQL
 import requests
 from datetime import datetime, timedelta
@@ -9,6 +9,13 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 
 from config import Config
+from services.search_service import (
+    DEFAULT_DESTINATIONS,
+    filter_destinations,
+    paginate_results,
+    parse_float,
+    parse_int,
+)
 
 BASE_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = BASE_DIR.parent
@@ -55,6 +62,38 @@ def get_places(city):
     }
 
     return data.get(city, ["City Center", "Popular Market", "Tourist Attractions"])
+
+
+def get_destinations_from_db():
+    """Load destinations from MySQL, falling back to seed data if unavailable."""
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute(
+            """
+            SELECT id, name, location, category, budget, rating, description, image
+            FROM destinations
+            """
+        )
+        rows = cur.fetchall()
+    except Exception:
+        return DEFAULT_DESTINATIONS
+
+    if not rows:
+        return DEFAULT_DESTINATIONS
+
+    return [
+        {
+            "id": row[0],
+            "name": row[1],
+            "location": row[2],
+            "category": row[3],
+            "budget": float(row[4]),
+            "rating": float(row[5]),
+            "description": row[6],
+            "image": row[7],
+        }
+        for row in rows
+    ]
 
 
 # ---------------- SENTIMENT ANALYSIS ---------------- #
@@ -212,6 +251,67 @@ def login():
         return redirect("/home?welcome=1")
 
     return "Invalid login credentials"
+
+
+# ---------------- SEARCH & FILTER API ---------------- #
+
+@app.route("/api/search", methods=["GET"])
+def search_destinations_api():
+    min_budget, min_budget_error = parse_float(request.args.get("min_budget"), "min_budget")
+    max_budget, max_budget_error = parse_float(request.args.get("max_budget"), "max_budget")
+    min_rating, min_rating_error = parse_float(request.args.get("min_rating"), "min_rating")
+    page, page_error = parse_int(request.args.get("page"), "page", 1, minimum=1)
+    per_page, per_page_error = parse_int(
+        request.args.get("per_page"),
+        "per_page",
+        10,
+        minimum=1,
+        maximum=50,
+    )
+
+    errors = [
+        error for error in [
+            min_budget_error,
+            max_budget_error,
+            min_rating_error,
+            page_error,
+            per_page_error,
+        ]
+        if error
+    ]
+
+    if min_budget is not None and max_budget is not None and min_budget > max_budget:
+        errors.append("min_budget cannot be greater than max_budget")
+
+    if min_rating is not None and not 0 <= min_rating <= 5:
+        errors.append("min_rating must be between 0 and 5")
+
+    if errors:
+        return jsonify({
+            "success": False,
+            "errors": errors,
+        }), 400
+
+    filters = {
+        "q": request.args.get("q", "").strip(),
+        "location": request.args.get("location", "").strip(),
+        "category": request.args.get("category", "").strip(),
+        "min_budget": min_budget,
+        "max_budget": max_budget,
+        "min_rating": min_rating,
+        "sort_by": request.args.get("sort_by", "rating_desc").strip(),
+    }
+
+    destinations = get_destinations_from_db()
+    filtered_destinations = filter_destinations(destinations, filters)
+    payload = paginate_results(filtered_destinations, page, per_page)
+
+    return jsonify({
+        "success": True,
+        "filters": filters,
+        "data": payload["items"],
+        "pagination": payload["pagination"],
+    })
 
 
 # ---------------- SEARCH (API + AI + ML) ---------------- #
