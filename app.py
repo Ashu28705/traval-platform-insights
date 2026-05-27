@@ -1,25 +1,30 @@
-from flask import Flask, render_template, request, redirect, session
+﻿from flask import Flask, render_template, request, redirect, session
 import requests
 import os
+import re
 from datetime import datetime, timedelta
 
 # ML IMPORTS
 import numpy as np
 from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LogisticRegression
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.pipeline import Pipeline
+from sklearn.metrics.pairwise import cosine_similarity
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "travelai_secret_local")
 
-# ─────────────────────────────────────────────────────────────
-# DATABASE — dual mode:
-#   • DATABASE_URL set  →  PostgreSQL (Vercel / Render / Neon)
-#   • DATABASE_URL not set  →  MySQL via XAMPP (local dev)
-# ─────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# DATABASE â€” dual mode:
+#   â€¢ DATABASE_URL set  â†’  PostgreSQL (Vercel / Render / Neon)
+#   â€¢ DATABASE_URL not set  â†’  MySQL via XAMPP (local dev)
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 if DATABASE_URL:
-    # ── PRODUCTION: PostgreSQL ──────────────────────────────
+    # â”€â”€ PRODUCTION: PostgreSQL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     import psycopg2
 
     def get_db():
@@ -27,7 +32,7 @@ if DATABASE_URL:
         return conn, conn.cursor()
 
 else:
-    # ── LOCAL: MySQL (XAMPP) ────────────────────────────────
+    # â”€â”€ LOCAL: MySQL (XAMPP) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     try:
         from flask_mysqldb import MySQL
         app.config['MYSQL_HOST']     = 'localhost'
@@ -45,8 +50,8 @@ else:
         def get_db():
             raise RuntimeError("No DATABASE_URL set and flask-mysqldb not available.")
 
-# ── Lazy table initialisation (works for both cold-start Vercel
-#    and long-running gunicorn processes) ─────────────────────
+# â”€â”€ Lazy table initialisation (works for both cold-start Vercel
+#    and long-running gunicorn processes) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 _db_ready = False
 
 def ensure_db():
@@ -82,9 +87,9 @@ def ensure_db():
 def before_request():
     ensure_db()
 
-# ─────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # WEATHER API KEY
-# ─────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 API_KEY = os.environ.get("WEATHER_API_KEY", "0a0d90fa7e37ea79903248af2e4e1ef9")
 
 
@@ -115,6 +120,177 @@ def get_places(city):
     return data.get(city, ["City Center", "Popular Market", "Tourist Attractions"])
 
 
+PLACE_CATALOG = {
+    "Eiffel Tower": "Iconic Paris landmark with skyline views, romantic atmosphere, architecture, and sunset photos.",
+    "Louvre Museum": "World-famous museum with art, culture, history, and indoor exploration.",
+    "Notre Dame": "Historic cathedral and cultural landmark in central Paris.",
+    "Burj Khalifa": "Sky-high observation decks, luxury city views, modern architecture, and premium experience.",
+    "Dubai Mall": "Shopping, dining, entertainment, indoor attractions, and family-friendly activities.",
+    "Palm Jumeirah": "Coastal resort area with beaches, scenic drives, and luxury stays.",
+    "India Gate": "Historic monument, open public space, evening walks, and city photography.",
+    "Red Fort": "Heritage site with architecture, history, and guided cultural visits.",
+    "Qutub Minar": "Historic tower, archaeology, and heritage-focused sightseeing.",
+    "Shibuya Crossing": "Bustling urban energy, shopping, nightlife, and iconic city views.",
+    "Tokyo Tower": "Observation decks, city panoramas, and classic skyline sightseeing.",
+    "Sensoji Temple": "Traditional temple experience, culture, market streets, and calm exploration.",
+    "Big Ben": "Classic London landmark near major attractions and riverside sightseeing.",
+    "London Eye": "Panoramic city views, riverside walks, and daytime or evening rides.",
+    "Tower Bridge": "Famous bridge, river views, photography, and nearby walking routes.",
+    "City Center": "Central sightseeing, food, transport, and easy first-time exploration.",
+    "Popular Market": "Local shopping, street food, culture, and busy atmosphere.",
+    "Tourist Attractions": "General sightseeing zone with top-rated visitor experiences.",
+}
+
+CITY_PROFILES = {
+    "paris": "romantic art museums architecture scenic walking cafes river views culture",
+    "dubai": "luxury shopping modern skyline desert experiences premium attractions beaches",
+    "delhi": "heritage monuments street food history culture markets photography",
+    "tokyo": "urban energy technology culture temples shopping food nightlife views",
+    "london": "historic landmarks museums river walks culture food transport city views",
+}
+
+_sentiment_model = None
+_recommendation_vectorizer = None
+_recommendation_catalog = []
+
+
+def normalize_text(text):
+    return re.sub(r"[^a-z0-9]+", " ", (text or "").lower()).strip()
+
+
+def build_sentiment_training_data():
+    positive_templates = [
+        "the trip was amazing and beautiful",
+        "i loved the experience and would recommend it",
+        "the place was excellent wonderful and perfect",
+        "friendly staff and a fantastic experience",
+        "stunning views and superb service made it enjoyable",
+        "great atmosphere and an awesome day out",
+        "the destination was delightful and memorable",
+        "brilliant culture and a nice relaxing visit",
+        "a happy enjoyable and outstanding journey",
+        "the visit was good clean and beautiful",
+    ]
+    negative_templates = [
+        "the trip was terrible and disappointing",
+        "i hated the experience and would avoid it",
+        "the place was awful dirty and noisy",
+        "poor service and a horrible visit",
+        "overcrowded, expensive, and boring",
+        "the destination felt unsafe and unpleasant",
+        "bad atmosphere and a dull experience",
+        "messy, rude staff, and a waste of time",
+        "disgusting conditions and the worst service",
+        "mediocre and overrated with no value",
+    ]
+
+    X = positive_templates + negative_templates
+    y = ["Positive"] * len(positive_templates) + ["Negative"] * len(negative_templates)
+    return X, y
+
+
+def get_sentiment_model():
+    global _sentiment_model
+    if _sentiment_model is None:
+        X, y = build_sentiment_training_data()
+        _sentiment_model = Pipeline([
+            ("tfidf", TfidfVectorizer(ngram_range=(1, 2), stop_words="english")),
+            ("clf", LogisticRegression(max_iter=1000)),
+        ])
+        _sentiment_model.fit(X, y)
+    return _sentiment_model
+
+
+def predict_review_sentiment(text):
+    model = get_sentiment_model()
+    label = model.predict([text])[0]
+    confidence = 0.5
+    if hasattr(model, "predict_proba"):
+        confidence = float(np.max(model.predict_proba([text])[0]))
+    return label, confidence
+
+
+def fetch_recent_reviews(limit=100):
+    try:
+        conn, cur = get_db()
+        try:
+            cur.execute(
+                "SELECT name, place, rating, review, created_at FROM reviews ORDER BY created_at DESC LIMIT %s",
+                (limit,)
+            )
+            rows = cur.fetchall()
+        finally:
+            cur.close()
+            if DATABASE_URL:
+                conn.close()
+        return rows
+    except Exception:
+        return []
+
+
+def get_place_description(place, city):
+    return PLACE_CATALOG.get(
+        place,
+        f"{place} in {city} with sightseeing, local food, and visitor appeal."
+    )
+
+
+def refine_recommendations(city, base_places):
+    if not base_places:
+        return base_places
+
+    city_profile = CITY_PROFILES.get(
+        city.lower(),
+        f"{city} travel landmarks food culture scenic views local experiences"
+    )
+    descriptions = [get_place_description(place, city) for place in base_places]
+    corpus = [city_profile] + descriptions
+    vectorizer = TfidfVectorizer(stop_words="english", ngram_range=(1, 2))
+    matrix = vectorizer.fit_transform(corpus)
+
+    recent_reviews = fetch_recent_reviews()
+    normalized_reviews = []
+    for name, place, rating, review_text, created_at in recent_reviews:
+        sentiment_label, sentiment_confidence = predict_review_sentiment(review_text or "")
+        normalized_reviews.append({
+            "place": normalize_text(place),
+            "text": normalize_text(review_text),
+            "rating": float(rating),
+            "sentiment": sentiment_label,
+            "confidence": sentiment_confidence,
+        })
+
+    scored_places = []
+    for idx, place in enumerate(base_places, start=1):
+        similarity_score = float(cosine_similarity(matrix[0], matrix[idx])[0][0])
+        normalized_place = normalize_text(place)
+
+        matched_reviews = [
+            review for review in normalized_reviews
+            if normalized_place and (
+                normalized_place in review["place"] or
+                normalized_place in review["text"] or
+                review["place"] in normalized_place
+            )
+        ]
+
+        if matched_reviews:
+            avg_rating = sum(review["rating"] for review in matched_reviews) / len(matched_reviews)
+            positive_ratio = sum(1 for review in matched_reviews if review["sentiment"] == "Positive") / len(matched_reviews)
+            confidence = sum(review["confidence"] for review in matched_reviews) / len(matched_reviews)
+        else:
+            avg_rating = 3.5
+            positive_ratio = 0.5
+            confidence = 0.5
+
+        rating_score = max(0.0, min(1.0, (avg_rating - 1.0) / 4.0))
+        final_score = (0.45 * similarity_score) + (0.30 * rating_score) + (0.25 * (positive_ratio * confidence))
+        scored_places.append((final_score, place))
+
+    scored_places.sort(key=lambda item: item[0], reverse=True)
+    return [place for _, place in scored_places]
+
+
 # ---------------- SENTIMENT ANALYSIS ---------------- #
 
 POSITIVE_WORDS = {
@@ -132,7 +308,14 @@ NEGATIVE_WORDS = {
 }
 
 def analyze_sentiment(text):
-    """Keyword-based sentiment: returns 'Positive', 'Negative', or 'Neutral'."""
+    """Model-based sentiment with a keyword fallback."""
+    try:
+        label, confidence = predict_review_sentiment(text)
+        if confidence >= 0.6:
+            return label
+    except Exception:
+        pass
+
     words = set(text.lower().split())
     pos_hits = len(words & POSITIVE_WORDS)
     neg_hits = len(words & NEGATIVE_WORDS)
@@ -140,8 +323,7 @@ def analyze_sentiment(text):
         return "Positive"
     elif neg_hits > pos_hits:
         return "Negative"
-    else:
-        return "Neutral"
+    return "Neutral"
 
 
 # ---------------- REAL ML MODEL ---------------- #
@@ -193,6 +375,82 @@ def predict_with_ml(temp, start_dt=None, end_dt=None):
         return [int(x) for x in predictions]
 
 
+def build_dashboard_context(city, start_time_str="", end_time_str=""):
+    """Build the dashboard data for a city, optionally using a date-time interval."""
+    chart_labels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+    start_dt = None
+    end_dt = None
+
+    if start_time_str and end_time_str:
+        try:
+            start_dt = datetime.strptime(start_time_str, "%Y-%m-%dT%H:%M")
+            end_dt = datetime.strptime(end_time_str, "%Y-%m-%dT%H:%M")
+            if start_dt > end_dt:
+                start_dt, end_dt = end_dt, start_dt
+
+            total_hours = int((end_dt - start_dt).total_seconds() / 3600)
+            num_points = min(total_hours + 1, 24)
+            step = max(total_hours // (num_points - 1), 1) if num_points > 1 else 1
+            chart_labels = [
+                (start_dt + timedelta(hours=i * step)).strftime("%d %b %H:%M")
+                for i in range(num_points)
+            ]
+        except ValueError:
+            start_dt = None
+            end_dt = None
+
+    try:
+        url = f"https://api.openweathermap.org/data/2.5/weather?q={city}&appid={API_KEY}&units=metric"
+        response = requests.get(url, timeout=10)
+        data = response.json()
+
+        if data.get("cod") != 200:
+            return {
+                "weather": data.get("message", "City not found"),
+                "crowd": "--",
+                "best_start": "--",
+                "best_end": "--",
+                "city": city,
+                "places": [],
+                "crowd_data": [],
+                "chart_labels": chart_labels,
+                "start_time": start_time_str,
+                "end_time": end_time_str,
+            }
+
+        temperature = data["main"]["temp"]
+        description = data["weather"][0]["description"]
+        crowd, best_start, best_end = get_travel_insights(temperature)
+        places = refine_recommendations(city, get_places(city))
+
+        return {
+            "weather": f"{temperature}Â°C {description}",
+            "crowd": crowd,
+            "best_start": best_start,
+            "best_end": best_end,
+            "city": city,
+            "places": places,
+            "crowd_data": predict_with_ml(temperature, start_dt, end_dt),
+            "chart_labels": chart_labels,
+            "start_time": start_time_str,
+            "end_time": end_time_str,
+        }
+    except Exception as e:
+        print("ERROR:", e)
+        return {
+            "weather": "Server error",
+            "crowd": "--",
+            "best_start": "--",
+            "best_end": "--",
+            "city": city,
+            "places": [],
+            "crowd_data": [],
+            "chart_labels": chart_labels,
+            "start_time": start_time_str,
+            "end_time": end_time_str,
+        }
+
+
 # ---------------- ROUTES ---------------- #
 
 @app.route("/")
@@ -210,6 +468,17 @@ def dashboard():
 
     if "user" not in session:
         return redirect("/")
+
+    voice_city = request.args.get("voice_city", "").strip()
+    if voice_city:
+        voice_start_time = request.args.get("voice_start_time", "").strip()
+        voice_end_time = request.args.get("voice_end_time", "").strip()
+        context = build_dashboard_context(voice_city, voice_start_time, voice_end_time)
+        return render_template(
+            "dashboard.html",
+            name=session["user"],
+            **context
+        )
 
     return render_template(
         "dashboard.html",
@@ -287,85 +556,14 @@ def search():
         return redirect("/")
 
     city = request.form["city"]
-
-    # 🔥 DATE-TIME INTERVAL INPUTS
     start_time_str = request.form.get("start_time", "")
-    end_time_str   = request.form.get("end_time", "")
-
-    # Parse date-time interval
-    start_dt = None
-    end_dt   = None
-    chart_labels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
-
-    if start_time_str and end_time_str:
-        try:
-            start_dt = datetime.strptime(start_time_str, "%Y-%m-%dT%H:%M")
-            end_dt   = datetime.strptime(end_time_str,   "%Y-%m-%dT%H:%M")
-            if start_dt > end_dt:
-                start_dt, end_dt = end_dt, start_dt  # swap if out of order
-
-            total_hours = int((end_dt - start_dt).total_seconds() / 3600)
-            num_points  = min(total_hours + 1, 24)
-            step = max(total_hours // (num_points - 1), 1) if num_points > 1 else 1
-            chart_labels = [
-                (start_dt + timedelta(hours=i * step)).strftime("%d %b %H:%M")
-                for i in range(num_points)
-            ]
-        except ValueError:
-            start_dt = None
-            end_dt   = None
-
-    try:
-        url = f"https://api.openweathermap.org/data/2.5/weather?q={city}&appid={API_KEY}&units=metric"
-
-        response = requests.get(url, timeout=10)
-        data = response.json()
-
-        if data.get("cod") != 200:
-            weather_data = data.get("message", "City not found")
-            crowd = "--"
-            best_start = "--"
-            best_end   = "--"
-            places = []
-            crowd_data = []
-
-        else:
-            temperature = data["main"]["temp"]
-            description = data["weather"][0]["description"]
-
-            weather_data = f"{temperature}°C {description}"
-
-            # AI LOGIC — returns crowd level + best visit interval
-            crowd, best_start, best_end = get_travel_insights(temperature)
-
-            # RECOMMENDATIONS
-            places = get_places(city)
-
-            # 🔥 REAL ML PREDICTION (date-time interval aware)
-            crowd_data = predict_with_ml(temperature, start_dt, end_dt)
-
-    except Exception as e:
-        print("ERROR:", e)
-        weather_data = "Server error"
-        crowd = "--"
-        best_start = "--"
-        best_end   = "--"
-        places = []
-        crowd_data = []
+    end_time_str = request.form.get("end_time", "")
+    context = build_dashboard_context(city, start_time_str, end_time_str)
 
     return render_template(
         "dashboard.html",
         name=session["user"],
-        weather=weather_data,
-        crowd=crowd,
-        best_start=best_start,
-        best_end=best_end,
-        city=city,
-        places=places,
-        crowd_data=crowd_data,
-        chart_labels=chart_labels,
-        start_time=start_time_str,
-        end_time=end_time_str
+        **context
     )
 
 
@@ -421,7 +619,7 @@ def reviews():
 
     for row in rows:
         rid, name, place, rating, review_text, created_at = row
-        sentiment = analyze_sentiment(review_text)
+        sentiment, sentiment_confidence = predict_review_sentiment(review_text)
         rating_dist[int(rating)] += 1
         sentiments[sentiment]    += 1
         total_rating += int(rating)
@@ -432,6 +630,7 @@ def reviews():
             "rating":     int(rating),
             "review":     review_text,
             "sentiment":  sentiment,
+            "sentiment_confidence": round(sentiment_confidence, 2),
             "created_at": created_at.strftime("%d %b %Y, %I:%M %p") if created_at else ""
         })
 
@@ -490,4 +689,5 @@ def submit_review():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     debug = not DATABASE_URL  # debug only on local
-    app.run(host="0.0.0.0", port=port, debug=debug)
+    app.run(host="0.0.0.0", port=port, debug=debug)
+
