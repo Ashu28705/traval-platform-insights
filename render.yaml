@@ -21,4 +21,4 @@ services:
       - key: WEATHER_API_KEY
         value: 0a0d90fa7e37ea79903248af2e4e1ef9
       - key: PYTHON_VERSION
-        value: 3.11.0
+        value: 3.11.11
